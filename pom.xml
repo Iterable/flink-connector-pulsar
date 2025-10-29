@@ -29,7 +29,7 @@ under the License.
         <version>1.0.0</version>
     </parent>
 
-    <groupId>org.apache.flink</groupId>
+    <groupId>com.iterable.flink</groupId>
     <artifactId>flink-connector-pulsar-parent</artifactId>
     <version>4.2-SNAPSHOT</version>
     <name>Flink : Connectors : Pulsar : Parent</name>
@@ -37,12 +37,25 @@ under the License.
     <inceptionYear>2022</inceptionYear>
 
     <scm>
-        <url>https://github.com/apache/flink-connector-pulsar</url>
-        <connection>git@github.com:apache/flink-connector-pulsar.git</connection>
+        <url>https://github.com/iterable/flink-connector-pulsar</url>
+        <connection>scm:git:git@github.com:iterable/flink-connector-pulsar.git</connection>
         <developerConnection>
-            scm:git:https://gitbox.apache.org/repos/asf/flink-connector-pulsar.git
+            scm:git:git@github.com:iterable/flink-connector-pulsar.git
         </developerConnection>
     </scm>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/iterable/flink-connector-pulsar</url>
+        </repository>
+        <snapshotRepository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/iterable/flink-connector-pulsar</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <modules>
         <module>flink-connector-pulsar</module>
@@ -560,6 +573,12 @@ under the License.
             <plugin>
                 <groupId>org.commonjava.maven.plugins</groupId>
                 <artifactId>directory-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>directories</id>
+                        <phase>none</phase>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
