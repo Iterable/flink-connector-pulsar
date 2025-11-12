@@ -31,7 +31,7 @@ under the License.
 
     <groupId>com.iterable.flink</groupId>
     <artifactId>flink-connector-pulsar-parent</artifactId>
-    <version>4.2.2-iterable</version>
+    <version>4.2.3-iterable</version>
     <name>Flink : Connectors : Pulsar : Parent</name>
     <packaging>pom</packaging>
     <inceptionYear>2022</inceptionYear>
