@@ -95,7 +95,8 @@ import static org.apache.flink.util.Preconditions.checkState;
  * }</pre>
  *
  * <p>The service url, subscription name, topics to consume, and the record deserializer are
- * required fields that must be set.
+ * required fields that must be set. Topics can be specified using {@link #setTopics(List)}, {@link
+ * #setTopicPattern(Pattern)}, or {@link #setTopicPatterns(List)} for multiple patterns.
  *
  * <p>To specify the starting position of PulsarSource, one can call {@link
  * #setStartCursor(StartCursor)}.
@@ -279,6 +280,47 @@ public final class PulsarSourceBuilder<OUT> {
         ensureSubscriberIsNull("topic pattern");
         this.subscriber =
                 PulsarSubscriber.getTopicPatternSubscriber(topicsPattern, regexSubscriptionMode);
+        return this;
+    }
+
+    /**
+     * Set multiple topic patterns to consume from. You can set topics once either with {@link
+     * #setTopics}, {@link #setTopicPattern}, or {@link #setTopicPatterns} in this builder.
+     *
+     * <p>Each pattern can target a different namespace. Topics matched by multiple patterns will be
+     * deduplicated automatically.
+     *
+     * @param topicPatterns the list of patterns of topic names to consume from.
+     * @return this PulsarSourceBuilder.
+     */
+    public PulsarSourceBuilder<OUT> setTopicPatterns(List<Pattern> topicPatterns) {
+        return setTopicPatterns(topicPatterns, RegexSubscriptionMode.AllTopics);
+    }
+
+    /**
+     * Set multiple topic patterns to consume from. You can set topics once either with {@link
+     * #setTopics}, {@link #setTopicPattern}, or {@link #setTopicPatterns} in this builder.
+     *
+     * <p>Each pattern can target a different namespace. Topics matched by multiple patterns will be
+     * deduplicated automatically.
+     *
+     * @param topicPatterns the list of patterns of topic names to consume from.
+     * @param regexSubscriptionMode When subscribing to topics using regular expressions, you can
+     *     pick a certain type of topic.
+     *     <ul>
+     *       <li>PersistentOnly: only subscribe to persistent topics.
+     *       <li>NonPersistentOnly: only subscribe to non-persistent topics.
+     *       <li>AllTopics: subscribe to both persistent and non-persistent topics.
+     *     </ul>
+     *
+     * @return this PulsarSourceBuilder.
+     */
+    public PulsarSourceBuilder<OUT> setTopicPatterns(
+            List<Pattern> topicPatterns, RegexSubscriptionMode regexSubscriptionMode) {
+        ensureSubscriberIsNull("topic patterns");
+        this.subscriber =
+                PulsarSubscriber.getMultiTopicPatternSubscriber(
+                        topicPatterns, regexSubscriptionMode);
         return this;
     }
 
