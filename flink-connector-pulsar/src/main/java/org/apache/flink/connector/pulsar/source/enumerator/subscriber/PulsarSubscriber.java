@@ -20,6 +20,7 @@ package org.apache.flink.connector.pulsar.source.enumerator.subscriber;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.connector.pulsar.source.enumerator.subscriber.impl.MultiPatternSubscriber;
+import org.apache.flink.connector.pulsar.source.enumerator.subscriber.impl.NamespacePatternSubscriber;
 import org.apache.flink.connector.pulsar.source.enumerator.subscriber.impl.TopicListSubscriber;
 import org.apache.flink.connector.pulsar.source.enumerator.subscriber.impl.TopicPatternSubscriber;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
@@ -80,5 +81,10 @@ public interface PulsarSubscriber extends Serializable {
     static PulsarSubscriber getMultiTopicPatternSubscriber(
             List<Pattern> topicPatterns, RegexSubscriptionMode subscriptionMode) {
         return new MultiPatternSubscriber(topicPatterns, subscriptionMode);
+    }
+
+    static PulsarSubscriber getNamespacePatternSubscriber(
+            Pattern fullPattern, RegexSubscriptionMode subscriptionMode) {
+        return new NamespacePatternSubscriber(fullPattern, subscriptionMode);
     }
 }

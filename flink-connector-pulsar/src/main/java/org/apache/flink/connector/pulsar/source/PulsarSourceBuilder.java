@@ -325,6 +325,55 @@ public final class PulsarSourceBuilder<OUT> {
     }
 
     /**
+     * Set a pattern for dynamic namespace and topic discovery. You can set topics once either with
+     * {@link #setTopics}, {@link #setTopicPattern}, {@link #setTopicPatterns}, or {@link
+     * #setNamespaceTopicPattern} in this builder.
+     *
+     * <p>The pattern must be in the format: tenant/namespace-pattern/topic-pattern
+     *
+     * <p>Example: a pattern like eventbus/org-[0-9]+/post-[a-z]+ will discover all namespaces
+     * matching the pattern org-[0-9]+ under tenant eventbus, then discover all topics matching the
+     * pattern post-[a-z]+ in each namespace.
+     *
+     * @param fullPattern the full pattern in format tenant/namespace-pattern/topic-pattern.
+     * @return this PulsarSourceBuilder.
+     */
+    public PulsarSourceBuilder<OUT> setNamespaceTopicPattern(Pattern fullPattern) {
+        return setNamespaceTopicPattern(fullPattern, RegexSubscriptionMode.AllTopics);
+    }
+
+    /**
+     * Set a pattern for dynamic namespace and topic discovery. You can set topics once either with
+     * {@link #setTopics}, {@link #setTopicPattern}, {@link #setTopicPatterns}, or {@link
+     * #setNamespaceTopicPattern} in this builder.
+     *
+     * <p>The pattern must be in the format: tenant/namespace-pattern/topic-pattern
+     *
+     * <p>Example: a pattern like eventbus/org-[0-9]+/post-[a-z]+ will discover all namespaces
+     * matching the pattern org-[0-9]+ under tenant eventbus, then discover all topics matching the
+     * pattern post-[a-z]+ in each namespace.
+     *
+     * @param fullPattern the full pattern in format tenant/namespace-pattern/topic-pattern.
+     * @param regexSubscriptionMode When subscribing to topics using regular expressions, you can
+     *     pick a certain type of topic.
+     *     <ul>
+     *       <li>PersistentOnly: only subscribe to persistent topics.
+     *       <li>NonPersistentOnly: only subscribe to non-persistent topics.
+     *       <li>AllTopics: subscribe to both persistent and non-persistent topics.
+     *     </ul>
+     *
+     * @return this PulsarSourceBuilder.
+     */
+    public PulsarSourceBuilder<OUT> setNamespaceTopicPattern(
+            Pattern fullPattern, RegexSubscriptionMode regexSubscriptionMode) {
+        ensureSubscriberIsNull("namespace topic pattern");
+        this.subscriber =
+                PulsarSubscriber.getNamespacePatternSubscriber(
+                        fullPattern, regexSubscriptionMode);
+        return this;
+    }
+
+    /**
      * The consumer name is informative, and it can be used to identify a particular consumer
      * instance from the topic stats.
      */

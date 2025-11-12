@@ -21,6 +21,8 @@ package org.apache.flink.connector.pulsar.common.config;
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.configuration.ConfigOption;
 
+import org.apache.pulsar.client.admin.PulsarAdmin;
+import org.apache.pulsar.client.admin.PulsarAdminBuilder;
 import org.apache.pulsar.client.api.Authentication;
 import org.apache.pulsar.client.api.AuthenticationFactory;
 import org.apache.pulsar.client.api.ClientBuilder;
@@ -38,6 +40,7 @@ import static java.util.Collections.singletonMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_ADMIN_URL;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAMS;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PARAM_MAP;
 import static org.apache.flink.connector.pulsar.common.config.PulsarOptions.PULSAR_AUTH_PLUGIN_CLASS_NAME;
@@ -178,6 +181,71 @@ public final class PulsarClientFactory {
                 });
 
         return builder.build();
+    }
+
+    /**
+     * Create a PulsarAdmin by using the flink Configuration.
+     *
+     * <p>If PULSAR_ADMIN_URL is not configured, this method will derive it from
+     * PULSAR_SERVICE_URL by replacing the protocol and port: pulsar://host:6650 →
+     * http://host:8080 pulsar+ssl://host:6651 → https://host:8443
+     */
+    public static PulsarAdmin createAdmin(PulsarConfiguration configuration)
+            throws PulsarClientException {
+        String adminUrl;
+
+        if (configuration.contains(PULSAR_ADMIN_URL)) {
+            adminUrl = configuration.get(PULSAR_ADMIN_URL);
+        } else {
+            // Derive admin URL from service URL
+            String serviceUrl = configuration.get(PULSAR_SERVICE_URL);
+            adminUrl = deriveAdminUrl(serviceUrl);
+        }
+
+        PulsarAdminBuilder builder = PulsarAdmin.builder().serviceHttpUrl(adminUrl);
+
+        // Create the authentication instance
+        builder.authentication(createAuthentication(configuration));
+
+        // TLS configuration
+        configuration.useOption(PULSAR_TLS_KEY_FILE_PATH, builder::tlsKeyFilePath);
+        configuration.useOption(PULSAR_TLS_CERTIFICATE_FILE_PATH, builder::tlsCertificateFilePath);
+        configuration.useOption(PULSAR_TLS_TRUST_CERTS_FILE_PATH, builder::tlsTrustCertsFilePath);
+        configuration.useOption(
+                PULSAR_TLS_ALLOW_INSECURE_CONNECTION, builder::allowTlsInsecureConnection);
+        configuration.useOption(
+                PULSAR_TLS_HOSTNAME_VERIFICATION_ENABLE, builder::enableTlsHostnameVerification);
+
+        return builder.build();
+    }
+
+    /**
+     * Derive admin URL from service URL by replacing protocol and port.
+     *
+     * <p>Examples: pulsar://localhost:6650 → http://localhost:8080 pulsar+ssl://localhost:6651 →
+     * https://localhost:8443 pulsar://broker1:6650,broker2:6650 → http://broker1:8080
+     */
+    private static String deriveAdminUrl(String serviceUrl) {
+        boolean useTls = serviceUrl.startsWith("pulsar+ssl://");
+        String protocol = useTls ? "https" : "http";
+        int defaultPort = useTls ? 8443 : 8080;
+
+        // Remove protocol prefix
+        String hostPart = serviceUrl.replaceFirst("pulsar(\\+ssl)?://", "");
+
+        // Handle multiple brokers - take the first one
+        if (hostPart.contains(",")) {
+            hostPart = hostPart.split(",")[0];
+        }
+
+        // Replace port if specified
+        if (hostPart.contains(":")) {
+            String host = hostPart.substring(0, hostPart.lastIndexOf(':'));
+            return protocol + "://" + host + ":" + defaultPort;
+        } else {
+            // No port specified, add default admin port
+            return protocol + "://" + hostPart + ":" + defaultPort;
+        }
     }
 
     /**

@@ -91,6 +91,26 @@ public final class PulsarOptions {
                                                             "pulsar+ssl://pulsar.us-west.example.com:6651")))
                                     .build());
 
+    public static final ConfigOption<String> PULSAR_ADMIN_URL =
+            ConfigOptions.key(CLIENT_CONFIG_PREFIX + "adminUrl")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription(
+                            Description.builder()
+                                    .text("The Pulsar Admin URL for HTTP API access.")
+                                    .linebreak()
+                                    .text(
+                                            "If not specified, it will be automatically derived from serviceUrl by replacing the protocol and port.")
+                                    .linebreak()
+                                    .list(
+                                            text(
+                                                    "Example: %s",
+                                                    code("http://localhost:8080")),
+                                            text(
+                                                    "For TLS: %s",
+                                                    code("https://localhost:8443")))
+                                    .build());
+
     public static final ConfigOption<String> PULSAR_AUTH_PLUGIN_CLASS_NAME =
             ConfigOptions.key(CLIENT_CONFIG_PREFIX + "authPluginClassName")
                     .stringType()
