@@ -167,7 +167,7 @@ public class NamespacePatternSubscriber extends BasePulsarSubscriber
 
             return matchingNamespaces;
         } catch (Exception e) {
-            if (lastKnownNamespaces.isEmpty()) {
+            if (lastKnownNamespaces == null || lastKnownNamespaces.isEmpty()) {
                 LOG.error(
                         "Failed to discover namespaces and no fallback available for tenant {}",
                         tenant,
