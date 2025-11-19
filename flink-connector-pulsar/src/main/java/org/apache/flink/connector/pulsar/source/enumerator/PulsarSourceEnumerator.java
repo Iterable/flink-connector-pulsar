@@ -27,12 +27,14 @@ import org.apache.flink.connector.pulsar.source.enumerator.cursor.CursorPosition
 import org.apache.flink.connector.pulsar.source.enumerator.cursor.StartCursor;
 import org.apache.flink.connector.pulsar.source.enumerator.cursor.StopCursor;
 import org.apache.flink.connector.pulsar.source.enumerator.subscriber.PulsarSubscriber;
+import org.apache.flink.connector.pulsar.source.enumerator.subscriber.RequiresPulsarAdmin;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator;
 import org.apache.flink.connector.pulsar.source.split.PulsarPartitionSplit;
 import org.apache.flink.metrics.groups.SplitEnumeratorMetricGroup;
 import org.apache.flink.util.FlinkRuntimeException;
 
+import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.slf4j.Logger;
@@ -45,6 +47,7 @@ import java.util.List;
 import java.util.Set;
 
 import static java.util.Collections.singletonList;
+import static org.apache.flink.connector.pulsar.common.config.PulsarClientFactory.createAdmin;
 import static org.apache.flink.connector.pulsar.common.config.PulsarClientFactory.createClient;
 import static org.apache.flink.connector.pulsar.source.enumerator.PulsarSourceEnumState.initialState;
 import static org.apache.flink.connector.pulsar.source.enumerator.assigner.SplitAssigner.createAssigner;
@@ -64,6 +67,8 @@ public class PulsarSourceEnumerator
     private final SplitEnumeratorContext<PulsarPartitionSplit> context;
     private final SplitAssigner splitAssigner;
     private final SplitEnumeratorMetricGroup metricGroup;
+
+    private PulsarAdmin pulsarAdmin;
 
     public PulsarSourceEnumerator(
             PulsarSubscriber subscriber,
@@ -105,6 +110,17 @@ public class PulsarSourceEnumerator
     @Override
     public void start() {
         subscriber.open(pulsarClient);
+
+        // Inject PulsarAdmin if subscriber requires it
+        if (subscriber instanceof RequiresPulsarAdmin) {
+            try {
+                this.pulsarAdmin = createAdmin(sourceConfiguration);
+                ((RequiresPulsarAdmin) subscriber).setAdmin(this.pulsarAdmin);
+            } catch (PulsarClientException e) {
+                throw new FlinkRuntimeException("Failed to create PulsarAdmin", e);
+            }
+        }
+
         rangeGenerator.open(sourceConfiguration);
 
         // Expose the split assignment metrics if Flink has supported.
@@ -170,6 +186,9 @@ public class PulsarSourceEnumerator
 
     @Override
     public void close() throws PulsarClientException {
+        if (pulsarAdmin != null) {
+            pulsarAdmin.close();
+        }
         if (pulsarClient != null) {
             pulsarClient.close();
         }

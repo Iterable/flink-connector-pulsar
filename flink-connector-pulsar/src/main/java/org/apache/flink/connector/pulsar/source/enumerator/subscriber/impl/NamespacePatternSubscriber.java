@@ -18,17 +18,15 @@
 
 package org.apache.flink.connector.pulsar.source.enumerator.subscriber.impl;
 
+import org.apache.flink.connector.pulsar.source.enumerator.subscriber.RequiresPulsarAdmin;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.RangeGenerator;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
-import org.apache.pulsar.client.api.Authentication;
-import org.apache.pulsar.client.api.PulsarClient;
 import org.apache.pulsar.client.api.PulsarClientException;
 import org.apache.pulsar.client.api.RegexSubscriptionMode;
 import org.apache.pulsar.client.impl.LookupService;
 import org.apache.pulsar.client.impl.PulsarClientImpl;
-import org.apache.pulsar.client.impl.conf.ClientConfigurationData;
 import org.apache.pulsar.common.api.proto.CommandGetTopicsOfNamespace.Mode;
 import org.apache.pulsar.common.lookup.GetTopicsResult;
 import org.apache.pulsar.common.naming.NamespaceName;
@@ -39,6 +37,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
@@ -54,7 +53,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * <p>Example: a pattern like eventbus/org-[0-9]+/topic-[a-z]+ will discover namespaces matching
  * org-[0-9]+ under tenant eventbus, then discover topics matching topic-[a-z]+ in each namespace.
  */
-public class NamespacePatternSubscriber extends BasePulsarSubscriber {
+public class NamespacePatternSubscriber extends BasePulsarSubscriber
+        implements RequiresPulsarAdmin {
     private static final long serialVersionUID = 1L;
     private static final Logger LOG = LoggerFactory.getLogger(NamespacePatternSubscriber.class);
 
@@ -87,7 +87,7 @@ public class NamespacePatternSubscriber extends BasePulsarSubscriber {
         this.namespacePattern = Pattern.compile(parts[1]);
         this.topicPattern = Pattern.compile(parts[2]);
         this.subscriptionMode = convertRegexSubscriptionMode(subscriptionMode);
-        this.lastKnownNamespaces = new ArrayList<>();
+        this.lastKnownNamespaces = new CopyOnWriteArrayList<>();
 
         LOG.info(
                 "Created NamespacePatternSubscriber: tenant={}, namespacePattern={}, topicPattern={}",
@@ -97,64 +97,8 @@ public class NamespacePatternSubscriber extends BasePulsarSubscriber {
     }
 
     @Override
-    public void open(PulsarClient client) {
-        super.open(client);
-
-        // Get the client configuration and create PulsarAdmin
-        try {
-            if (client instanceof PulsarClientImpl) {
-                PulsarClientImpl clientImpl = (PulsarClientImpl) client;
-                ClientConfigurationData clientConfig = clientImpl.getConfiguration();
-
-                // Derive admin URL from service URL
-                String serviceUrl = clientConfig.getServiceUrl();
-                String adminUrl = deriveAdminUrl(serviceUrl);
-
-                // Create PulsarAdmin with same authentication as client
-                Authentication authentication = clientConfig.getAuthentication();
-                this.admin =
-                        PulsarAdmin.builder()
-                                .serviceHttpUrl(adminUrl)
-                                .authentication(authentication)
-                                .build();
-
-                LOG.info("Successfully created PulsarAdmin for namespace discovery: {}", adminUrl);
-            } else {
-                throw new IllegalStateException(
-                        "PulsarClient must be an instance of PulsarClientImpl");
-            }
-        } catch (PulsarClientException e) {
-            throw new RuntimeException("Failed to create PulsarAdmin", e);
-        }
-    }
-
-    /**
-     * Derive admin URL from service URL by replacing protocol and port.
-     *
-     * <p>Examples: pulsar://localhost:6650 to http://localhost:8080 pulsar+ssl://localhost:6651 to
-     * https://localhost:8443
-     */
-    private String deriveAdminUrl(String serviceUrl) {
-        boolean useTls = serviceUrl.startsWith("pulsar+ssl://");
-        String protocol = useTls ? "https" : "http";
-        int defaultPort = useTls ? 8443 : 8080;
-
-        // Remove protocol prefix
-        String hostPart = serviceUrl.replaceFirst("pulsar(\\+ssl)?://", "");
-
-        // Handle multiple brokers - take the first one
-        if (hostPart.contains(",")) {
-            hostPart = hostPart.split(",")[0];
-        }
-
-        // Replace port if specified
-        if (hostPart.contains(":")) {
-            String host = hostPart.substring(0, hostPart.lastIndexOf(':'));
-            return protocol + "://" + host + ":" + defaultPort;
-        } else {
-            // No port specified, add default admin port
-            return protocol + "://" + hostPart + ":" + defaultPort;
-        }
+    public void setAdmin(PulsarAdmin admin) {
+        this.admin = checkNotNull(admin, "PulsarAdmin cannot be null");
     }
 
     @Override
@@ -195,16 +139,25 @@ public class NamespacePatternSubscriber extends BasePulsarSubscriber {
 
             // Filter by namespace pattern
             List<String> matchingNamespaces = new ArrayList<>();
+            String expectedPrefix = tenant + "/";
             for (String namespace : allNamespaces) {
+                // Validate namespace format before extracting local part
+                if (!namespace.startsWith(expectedPrefix)) {
+                    LOG.warn(
+                            "Unexpected namespace format: {}, expected to start with {}",
+                            namespace,
+                            expectedPrefix);
+                    continue;
+                }
                 // Extract local part (after tenant/)
-                String localPart = namespace.substring(tenant.length() + 1);
+                String localPart = namespace.substring(expectedPrefix.length());
                 if (namespacePattern.matcher(localPart).matches()) {
                     matchingNamespaces.add(namespace);
                 }
             }
 
             // Update last known namespaces
-            lastKnownNamespaces = new ArrayList<>(matchingNamespaces);
+            lastKnownNamespaces = new CopyOnWriteArrayList<>(matchingNamespaces);
 
             LOG.debug(
                     "Discovered {} namespaces matching pattern {} under tenant {}",
@@ -285,7 +238,12 @@ public class NamespacePatternSubscriber extends BasePulsarSubscriber {
      */
     private boolean matchesTopicPattern(String topic) {
         // Extract topic name without protocol
-        String shortenedTopic = topic.split("://")[1];
+        String[] parts = topic.split("://");
+        if (parts.length < 2) {
+            LOG.warn("Invalid topic format (missing protocol separator): {}", topic);
+            return false;
+        }
+        String shortenedTopic = parts[1];
         // Extract topic name without namespace
         String topicName = shortenedTopic.substring(shortenedTopic.lastIndexOf('/') + 1);
         return topicPattern.matcher(topicName).matches();
