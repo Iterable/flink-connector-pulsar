@@ -36,7 +36,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -313,18 +312,17 @@ class NamespacePatternSubscriberTest extends PulsarTestSuiteBase {
 
     // ==================== Helper Methods ====================
 
-    /** Helper method to test deriveAdminUrl via reflection. */
+    /**
+     * Helper method to test deriveAdminUrl logic.
+     * Since deriveAdminUrl is now in PulsarClientFactory, we test it indirectly
+     * through PulsarClientFactory.deriveAdminUrl via reflection.
+     */
     private String callDeriveAdminUrl(String serviceUrl) throws Exception {
-        NamespacePatternSubscriber subscriber =
-                (NamespacePatternSubscriber)
-                        getNamespacePatternSubscriber(
-                                Pattern.compile("tenant/ns-.*/topic-.*"), AllTopics);
-
         java.lang.reflect.Method method =
-                NamespacePatternSubscriber.class.getDeclaredMethod(
-                        "deriveAdminUrl", String.class);
+                org.apache.flink.connector.pulsar.common.config.PulsarClientFactory.class
+                        .getDeclaredMethod("deriveAdminUrl", String.class);
         method.setAccessible(true);
-        return (String) method.invoke(subscriber, serviceUrl);
+        return (String) method.invoke(null, serviceUrl);
     }
 
     /**
@@ -344,16 +342,10 @@ class NamespacePatternSubscriberTest extends PulsarTestSuiteBase {
 
         @Override
         public void open(PulsarClient client) {
-            // Set client field in BasePulsarSubscriber
-            try {
-                Field clientField = getClass().getSuperclass().getSuperclass().getDeclaredField("client");
-                clientField.setAccessible(true);
-                clientField.set(this, client);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+            // Call parent open to set client field
+            super.open(client);
 
-            // Create admin with test URL
+            // Create and inject admin with test URL
             try {
                 if (client instanceof PulsarClientImpl) {
                     PulsarClientImpl clientImpl = (PulsarClientImpl) client;
@@ -366,12 +358,10 @@ class NamespacePatternSubscriberTest extends PulsarTestSuiteBase {
                                     .authentication(authentication)
                                     .build();
 
-                    // Inject admin via reflection
-                    Field adminField = getClass().getSuperclass().getDeclaredField("admin");
-                    adminField.setAccessible(true);
-                    adminField.set(this, admin);
+                    // Use the new setAdmin method
+                    setAdmin(admin);
                 }
-            } catch (PulsarClientException | NoSuchFieldException | IllegalAccessException e) {
+            } catch (PulsarClientException e) {
                 throw new RuntimeException("Failed to create test admin", e);
             }
         }
