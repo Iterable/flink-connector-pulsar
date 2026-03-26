@@ -42,7 +42,10 @@ import static org.apache.pulsar.common.partition.PartitionedTopicMetadata.NON_PA
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-/** Unit tests for {@link org.apache.flink.connector.pulsar.source.enumerator.subscriber.impl.MultiPatternSubscriber}. */
+/**
+ * Unit tests for {@link
+ * org.apache.flink.connector.pulsar.source.enumerator.subscriber.impl.MultiPatternSubscriber}.
+ */
 class MultiPatternSubscriberTest extends PulsarTestSuiteBase {
 
     private static final int NUM_PARTITIONS_PER_TOPIC = 5;
@@ -214,8 +217,7 @@ class MultiPatternSubscriberTest extends PulsarTestSuiteBase {
 
     @Test
     void emptyPatternListThrowsException() {
-        assertThatThrownBy(
-                        () -> getMultiTopicPatternSubscriber(Arrays.asList(), AllTopics))
+        assertThatThrownBy(() -> getMultiTopicPatternSubscriber(Arrays.asList(), AllTopics))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Topic patterns cannot be empty");
     }
