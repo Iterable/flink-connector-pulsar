@@ -103,12 +103,8 @@ public final class PulsarOptions {
                                             "If not specified, it will be automatically derived from serviceUrl by replacing the protocol and port.")
                                     .linebreak()
                                     .list(
-                                            text(
-                                                    "Example: %s",
-                                                    code("http://localhost:8080")),
-                                            text(
-                                                    "For TLS: %s",
-                                                    code("https://localhost:8443")))
+                                            text("Example: %s", code("http://localhost:8080")),
+                                            text("For TLS: %s", code("https://localhost:8443")))
                                     .build());
 
     public static final ConfigOption<String> PULSAR_AUTH_PLUGIN_CLASS_NAME =

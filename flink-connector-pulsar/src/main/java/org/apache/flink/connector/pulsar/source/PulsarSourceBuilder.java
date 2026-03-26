@@ -368,8 +368,7 @@ public final class PulsarSourceBuilder<OUT> {
             Pattern fullPattern, RegexSubscriptionMode regexSubscriptionMode) {
         ensureSubscriberIsNull("namespace topic pattern");
         this.subscriber =
-                PulsarSubscriber.getNamespacePatternSubscriber(
-                        fullPattern, regexSubscriptionMode);
+                PulsarSubscriber.getNamespacePatternSubscriber(fullPattern, regexSubscriptionMode);
         return this;
     }
 

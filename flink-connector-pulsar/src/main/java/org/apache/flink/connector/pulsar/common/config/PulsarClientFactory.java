@@ -186,9 +186,9 @@ public final class PulsarClientFactory {
     /**
      * Create a PulsarAdmin by using the flink Configuration.
      *
-     * <p>If PULSAR_ADMIN_URL is not configured, this method will derive it from
-     * PULSAR_SERVICE_URL by replacing the protocol and port: pulsar://host:6650 →
-     * http://host:8080 pulsar+ssl://host:6651 → https://host:8443
+     * <p>If PULSAR_ADMIN_URL is not configured, this method will derive it from PULSAR_SERVICE_URL
+     * by replacing the protocol and port: pulsar://host:6650 → http://host:8080
+     * pulsar+ssl://host:6651 → https://host:8443
      */
     public static PulsarAdmin createAdmin(PulsarConfiguration configuration)
             throws PulsarClientException {

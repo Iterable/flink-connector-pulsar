@@ -66,8 +66,7 @@ public class NamespacePatternSubscriber extends BasePulsarSubscriber
     private transient PulsarAdmin admin;
     private transient List<String> lastKnownNamespaces;
 
-    public NamespacePatternSubscriber(
-            Pattern fullPattern, RegexSubscriptionMode subscriptionMode) {
+    public NamespacePatternSubscriber(Pattern fullPattern, RegexSubscriptionMode subscriptionMode) {
         checkNotNull(fullPattern, "Full pattern cannot be null");
 
         String patternStr = fullPattern.pattern();
@@ -117,10 +116,7 @@ public class NamespacePatternSubscriber extends BasePulsarSubscriber
             allTopics.addAll(topics);
         }
 
-        LOG.info(
-                "Discovered {} topics across {} namespaces",
-                allTopics.size(),
-                namespaces.size());
+        LOG.info("Discovered {} topics across {} namespaces", allTopics.size(), namespaces.size());
 
         // Step 3: Convert to topic partitions
         return createTopicPartitions(allTopics, generator, parallelism);
@@ -129,8 +125,8 @@ public class NamespacePatternSubscriber extends BasePulsarSubscriber
     /**
      * Discover namespaces matching the namespace pattern.
      *
-     * <p>On success, updates lastKnownNamespaces. On failure, falls back to lastKnownNamespaces
-     * and logs a warning.
+     * <p>On success, updates lastKnownNamespaces. On failure, falls back to lastKnownNamespaces and
+     * logs a warning.
      */
     private List<String> discoverNamespaces() {
         try {

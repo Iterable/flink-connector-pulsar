@@ -59,20 +59,17 @@ class NamespacePatternSubscriberTest extends PulsarTestSuiteBase {
     private static final int NUM_PARALLELISM = 10;
 
     // Namespace pattern: flink/ns-pattern-.*
-    private final String ns1Topic1 =
-            topicName("flink/ns-pattern-1/topic-" + randomAlphanumeric(4));
+    private final String ns1Topic1 = topicName("flink/ns-pattern-1/topic-" + randomAlphanumeric(4));
     private final String ns1Topic2 =
             topicName("flink/ns-pattern-1/service-" + randomAlphanumeric(4));
-    private final String ns2Topic1 =
-            topicName("flink/ns-pattern-2/topic-" + randomAlphanumeric(4));
+    private final String ns2Topic1 = topicName("flink/ns-pattern-2/topic-" + randomAlphanumeric(4));
     private final String ns2Topic2 =
             topicName("flink/ns-pattern-2/service-" + randomAlphanumeric(4));
     private final String ns3Topic1 =
             topicName("flink/ns-pattern-other/topic-" + randomAlphanumeric(4));
 
     // Non-partitioned topics
-    private final String ns4Topic1 =
-            topicName("flink/ns-pattern-3/event-" + randomAlphanumeric(4));
+    private final String ns4Topic1 = topicName("flink/ns-pattern-3/event-" + randomAlphanumeric(4));
 
     @BeforeAll
     void setUp() throws Exception {
@@ -106,9 +103,11 @@ class NamespacePatternSubscriberTest extends PulsarTestSuiteBase {
 
     @Test
     void invalidPatternWithOnePartThrowsException() {
-        assertThatThrownBy(() -> getNamespacePatternSubscriber(Pattern.compile("invalid"), AllTopics))
+        assertThatThrownBy(
+                        () -> getNamespacePatternSubscriber(Pattern.compile("invalid"), AllTopics))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Pattern must be in format tenant/namespace-pattern/topic-pattern");
+                .hasMessageContaining(
+                        "Pattern must be in format tenant/namespace-pattern/topic-pattern");
     }
 
     @Test
@@ -118,7 +117,8 @@ class NamespacePatternSubscriberTest extends PulsarTestSuiteBase {
                                 getNamespacePatternSubscriber(
                                         Pattern.compile("tenant/namespace"), AllTopics))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Pattern must be in format tenant/namespace-pattern/topic-pattern");
+                .hasMessageContaining(
+                        "Pattern must be in format tenant/namespace-pattern/topic-pattern");
     }
 
     @Test
@@ -313,9 +313,9 @@ class NamespacePatternSubscriberTest extends PulsarTestSuiteBase {
     // ==================== Helper Methods ====================
 
     /**
-     * Helper method to test deriveAdminUrl logic.
-     * Since deriveAdminUrl is now in PulsarClientFactory, we test it indirectly
-     * through PulsarClientFactory.deriveAdminUrl via reflection.
+     * Helper method to test deriveAdminUrl logic. Since deriveAdminUrl is now in
+     * PulsarClientFactory, we test it indirectly through PulsarClientFactory.deriveAdminUrl via
+     * reflection.
      */
     private String callDeriveAdminUrl(String serviceUrl) throws Exception {
         java.lang.reflect.Method method =
@@ -333,9 +333,7 @@ class NamespacePatternSubscriberTest extends PulsarTestSuiteBase {
         private final String testAdminUrl;
 
         public TestableNamespacePatternSubscriber(
-                Pattern fullPattern,
-                RegexSubscriptionMode subscriptionMode,
-                String adminUrl) {
+                Pattern fullPattern, RegexSubscriptionMode subscriptionMode, String adminUrl) {
             super(fullPattern, subscriptionMode);
             this.testAdminUrl = adminUrl;
         }

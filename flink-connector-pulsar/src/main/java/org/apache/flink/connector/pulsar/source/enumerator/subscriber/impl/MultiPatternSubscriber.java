@@ -81,8 +81,8 @@ public class MultiPatternSubscriber extends BasePulsarSubscriber {
     }
 
     /**
-     * Query topics for a single pattern using Pulsar's internal protocol. This method is similar
-     * to TopicPatternSubscriber's implementation.
+     * Query topics for a single pattern using Pulsar's internal protocol. This method is similar to
+     * TopicPatternSubscriber's implementation.
      */
     private Set<String> queryTopicsForPattern(PatternInfo patternInfo)
             throws PulsarClientException {
