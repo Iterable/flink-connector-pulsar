@@ -24,6 +24,7 @@ import org.apache.flink.connector.pulsar.source.enumerator.subscriber.impl.Names
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.FullRangeGenerator;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
+import org.apache.flink.util.InstantiationUtil;
 
 import org.apache.pulsar.client.admin.PulsarAdmin;
 import org.apache.pulsar.client.api.Authentication;
@@ -47,6 +48,7 @@ import static org.apache.pulsar.client.api.RegexSubscriptionMode.AllTopics;
 import static org.apache.pulsar.client.api.RegexSubscriptionMode.PersistentOnly;
 import static org.apache.pulsar.common.partition.PartitionedTopicMetadata.NON_PARTITIONED;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
@@ -143,6 +145,14 @@ class NamespacePatternSubscriberTest extends PulsarTestSuiteBase {
                 getNamespacePatternSubscriber(
                         Pattern.compile("tenant/org-[0-9]+/[a-z]+-topic-[0-9]+"), AllTopics);
         assertThat(subscriber).isNotNull();
+    }
+
+    @Test
+    void serializationRoundTrip() {
+        PulsarSubscriber subscriber =
+                getNamespacePatternSubscriber(
+                        Pattern.compile("flink/ns-pattern-.*/topic-.*"), AllTopics);
+        assertThatCode(() -> InstantiationUtil.clone(subscriber)).doesNotThrowAnyException();
     }
 
     // ==================== Admin URL Derivation Tests ====================

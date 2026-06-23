@@ -23,6 +23,7 @@ import org.apache.flink.connector.pulsar.source.PulsarSource;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.range.FullRangeGenerator;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
+import org.apache.flink.util.InstantiationUtil;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -40,6 +41,7 @@ import static org.apache.pulsar.client.api.RegexSubscriptionMode.AllTopics;
 import static org.apache.pulsar.client.api.RegexSubscriptionMode.PersistentOnly;
 import static org.apache.pulsar.common.partition.PartitionedTopicMetadata.NON_PARTITIONED;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
@@ -213,6 +215,17 @@ class MultiPatternSubscriberTest extends PulsarTestSuiteBase {
         expectedPartitions.add(new TopicPartition(ns3Topic2, -1));
 
         assertThat(topicPartitions).isEqualTo(expectedPartitions);
+    }
+
+    @Test
+    void serializationRoundTrip() {
+        PulsarSubscriber subscriber =
+                getMultiTopicPatternSubscriber(
+                        Arrays.asList(
+                                Pattern.compile("flink/multi-pattern-1/topic-alpha-.*"),
+                                Pattern.compile("flink/multi-pattern-2/service-.*")),
+                        AllTopics);
+        assertThatCode(() -> InstantiationUtil.clone(subscriber)).doesNotThrowAnyException();
     }
 
     @Test

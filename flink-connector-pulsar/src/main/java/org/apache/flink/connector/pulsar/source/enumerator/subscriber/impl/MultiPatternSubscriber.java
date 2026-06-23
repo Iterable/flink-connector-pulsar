@@ -30,6 +30,7 @@ import org.apache.pulsar.common.lookup.GetTopicsResult;
 import org.apache.pulsar.common.naming.NamespaceName;
 import org.apache.pulsar.common.naming.TopicName;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -151,7 +152,9 @@ public class MultiPatternSubscriber extends BasePulsarSubscriber {
     }
 
     /** Internal class to hold pattern information. */
-    private static class PatternInfo {
+    private static class PatternInfo implements Serializable {
+        private static final long serialVersionUID = 1L;
+
         private final Pattern shortenedPattern;
         private final String namespace;
 
