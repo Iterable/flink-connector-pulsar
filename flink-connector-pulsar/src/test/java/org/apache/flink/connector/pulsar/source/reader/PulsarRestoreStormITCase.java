@@ -56,8 +56,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Reproduces the restore storm from a job that reads thousands of partitions on one exclusive
  * subscription.
  *
- * <p>Every restored split seeks the subscription with a temporary consumer and then subscribes
- * the real one, and all splits of a subtask share one client. This test starts a consumer per
+ * <p>Every restored split seeks the subscription with a temporary consumer and then subscribes the
+ * real one, and all splits of a subtask share one client. This test starts a consumer per
  * partition, drops the clients the way a lost TaskManager does, and restores every split at once,
  * several times. Any split that fails to set up would restart the whole job.
  *
@@ -84,7 +84,8 @@ class PulsarRestoreStormITCase extends PulsarTestSuiteBase {
         }
 
         List<PulsarClient> clients = newClients();
-        Map<String, AtomicInteger> startFailures = setUpSplits(clients, config, topicPartitions, null);
+        Map<String, AtomicInteger> startFailures =
+                setUpSplits(clients, config, topicPartitions, null);
         assertThat(startFailures).as("failed splits on first start").isEmpty();
 
         List<String> roundFailures = new ArrayList<>();

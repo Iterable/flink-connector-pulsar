@@ -35,10 +35,10 @@ import java.util.function.DoubleSupplier;
  *
  * <p>On restore, a split reader seeks the subscription with a temporary consumer and then creates
  * the real consumer, both on the same exclusive subscription. With thousands of splits starting at
- * once, a few of these calls fail transiently: the broker hasn't released the previous consumer
- * yet ({@link ConsumerBusyException}), or the client closed a connection that other splits share
- * because a consumer was closed while it was reconnecting. A single failed split fails the task
- * and restarts the job, so these calls retry instead.
+ * once, a few of these calls fail transiently: the broker hasn't released the previous consumer yet
+ * ({@link ConsumerBusyException}), or the client closed a connection that other splits share
+ * because a consumer was closed while it was reconnecting. A single failed split fails the task and
+ * restarts the job, so these calls retry instead.
  *
  * <p>Only errors the Pulsar client treats as retriable are retried, plus {@link
  * ConsumerBusyException}. Pulsar treats a busy consumer as permanent, but here it means the broker
