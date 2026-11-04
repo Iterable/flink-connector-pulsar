@@ -97,6 +97,7 @@ public class PulsarPartitionSplitReader
     private final Schema<byte[]> schema;
     private final PulsarCrypto pulsarCrypto;
     private final SourceReaderMetricGroup metricGroup;
+    private final ConsumerSetupRetry consumerSetupRetry;
 
     private Consumer<byte[]> pulsarConsumer;
     private PulsarPartitionSplit registeredSplit;
@@ -112,6 +113,7 @@ public class PulsarPartitionSplitReader
         this.schema = schema;
         this.pulsarCrypto = pulsarCrypto;
         this.metricGroup = metricGroup;
+        this.consumerSetupRetry = ConsumerSetupRetry.withDefaults();
     }
 
     @Override
@@ -218,7 +220,17 @@ public class PulsarPartitionSplitReader
                 String topicName = registeredSplit.getPartition().getFullTopicName();
                 String subscriptionName = sourceConfiguration.getSubscriptionName();
 
-                cursorPosition.setupSubPosition(pulsarClient, topicName, subscriptionName);
+                consumerSetupRetry.call(
+                        "reset the subscription cursor",
+                        registeredSplit.getPartition(),
+                        () -> {
+                            cursorPosition.setupSubPosition(
+                                    pulsarClient, topicName, subscriptionName);
+                            return null;
+                        });
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw interruptedWhileRetrying(registeredSplit.getPartition(), e);
             } catch (PulsarClientException e) {
                 if (sourceConfiguration.getVerifyInitialOffsets() == FAIL_ON_MISMATCH) {
                     throw new IllegalArgumentException(e);
@@ -234,39 +246,19 @@ public class PulsarPartitionSplitReader
             }
         }
 
-        // Create pulsar consumer with retry.
+        TopicPartition partition = registeredSplit.getPartition();
         try {
-            this.pulsarConsumer = createPulsarConsumer(registeredSplit.getPartition());
+            this.pulsarConsumer =
+                    consumerSetupRetry.call(
+                            "create consumer", partition, () -> createPulsarConsumer(partition));
         } catch (PulsarClientException e) {
-            LOG.warn(
-                    "Failed to create consumer on partition {} on first attempt, will retry after 2 seconds",
-                    registeredSplit.getPartition(),
+            throw new FlinkRuntimeException(
+                    String.format(
+                            "Failed to create consumer on partition %s after retries", partition),
                     e);
-
-            try {
-                Thread.sleep(2000);
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-                throw new FlinkRuntimeException(
-                        String.format(
-                                "Interrupted while waiting to retry consumer creation on partition %s",
-                                registeredSplit.getPartition()),
-                        ie);
-            }
-
-            // Retry consumer creation
-            try {
-                this.pulsarConsumer = createPulsarConsumer(registeredSplit.getPartition());
-                LOG.info(
-                        "Successfully created consumer on partition {} on second attempt",
-                        registeredSplit.getPartition());
-            } catch (PulsarClientException retryException) {
-                throw new FlinkRuntimeException(
-                        String.format(
-                                "Failed to create consumer on partition %s after retry",
-                                registeredSplit.getPartition()),
-                        retryException);
-            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw interruptedWhileRetrying(partition, e);
         }
 
         LOG.info("Register split {} consumer for current reader.", registeredSplit);
@@ -310,6 +302,14 @@ public class PulsarPartitionSplitReader
     }
 
     // --------------------------- Helper Methods -----------------------------
+
+    private static FlinkRuntimeException interruptedWhileRetrying(
+            TopicPartition partition, InterruptedException e) {
+        return new FlinkRuntimeException(
+                String.format(
+                        "Interrupted while setting up the consumer on partition %s", partition),
+                e);
+    }
 
     /** Create a specified {@link Consumer} by the given topic partition. */
     private Consumer<byte[]> createPulsarConsumer(TopicPartition partition)
