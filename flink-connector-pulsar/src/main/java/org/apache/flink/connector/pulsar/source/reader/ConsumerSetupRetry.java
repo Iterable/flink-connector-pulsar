@@ -19,7 +19,6 @@
 package org.apache.flink.connector.pulsar.source.reader;
 
 import org.apache.flink.annotation.Internal;
-import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.connector.pulsar.source.enumerator.topic.TopicPartition;
 
 import org.apache.pulsar.client.api.PulsarClientException;
@@ -71,7 +70,6 @@ final class ConsumerSetupRetry {
     private final DoubleSupplier jitter;
     private final Sleeper sleeper;
 
-    @VisibleForTesting
     ConsumerSetupRetry(
             int maxRetries,
             long initialBackoffMs,
@@ -124,13 +122,11 @@ final class ConsumerSetupRetry {
         }
     }
 
-    @VisibleForTesting
     static boolean isRetriable(PulsarClientException e) {
         return e instanceof ConsumerBusyException || PulsarClientException.isRetriableError(e);
     }
 
     /** Exponential backoff for the given zero-based retry, jittered by up to 50% and capped. */
-    @VisibleForTesting
     long backoffMs(int retry) {
         long base = initialBackoffMs << Math.min(retry, 30);
         if (base <= 0 || base > maxBackoffMs) {

@@ -65,7 +65,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * {@code -Dpulsar.restore.repro.partitions=2000}.
  */
 @EnabledIfSystemProperty(named = "pulsar.restore.repro.partitions", matches = "\\d+")
-class PulsarRestoreStormITCase extends PulsarTestSuiteBase {
+class PulsarRestoreStormReproTest extends PulsarTestSuiteBase {
 
     private static final int SUBTASKS = intProperty("pulsar.restore.repro.subtasks", 16);
     private static final int ROUNDS = intProperty("pulsar.restore.repro.rounds", 3);

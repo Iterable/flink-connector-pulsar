@@ -108,29 +108,12 @@ public class PulsarPartitionSplitReader
             Schema<byte[]> schema,
             PulsarCrypto pulsarCrypto,
             SourceReaderMetricGroup metricGroup) {
-        this(
-                pulsarClient,
-                sourceConfiguration,
-                schema,
-                pulsarCrypto,
-                metricGroup,
-                ConsumerSetupRetry.withDefaults());
-    }
-
-    @VisibleForTesting
-    PulsarPartitionSplitReader(
-            PulsarClient pulsarClient,
-            SourceConfiguration sourceConfiguration,
-            Schema<byte[]> schema,
-            PulsarCrypto pulsarCrypto,
-            SourceReaderMetricGroup metricGroup,
-            ConsumerSetupRetry consumerSetupRetry) {
         this.pulsarClient = pulsarClient;
         this.sourceConfiguration = sourceConfiguration;
         this.schema = schema;
         this.pulsarCrypto = pulsarCrypto;
         this.metricGroup = metricGroup;
-        this.consumerSetupRetry = consumerSetupRetry;
+        this.consumerSetupRetry = ConsumerSetupRetry.withDefaults();
     }
 
     @Override
