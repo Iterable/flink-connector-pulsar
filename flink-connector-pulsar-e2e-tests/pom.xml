@@ -23,7 +23,7 @@ under the License.
 	<parent>
 		<groupId>com.iterable.flink</groupId>
 		<artifactId>flink-connector-pulsar-parent</artifactId>
-		<version>5.0.0-iterable</version>
+		<version>5.0.1-iterable</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 
@@ -49,10 +49,24 @@ under the License.
 		<dependency>
 			<groupId>org.apache.flink</groupId>
 			<artifactId>flink-connector-test-utils</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>org.testcontainers</groupId>
+          <artifactId>junit-jupiter</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.testcontainers</groupId>
+          <artifactId>testcontainers</artifactId>
+        </exclusion>
+      </exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-test-utils</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.testcontainers</groupId>
-			<artifactId>pulsar</artifactId>
+			<artifactId>testcontainers-pulsar</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.flink</groupId>

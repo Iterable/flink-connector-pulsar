@@ -21,7 +21,6 @@ package org.apache.flink.connector.pulsar.testutils.runtime.container;
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntime;
 import org.apache.flink.connector.pulsar.testutils.runtime.PulsarRuntimeOperator;
 
-import org.apache.pulsar.PulsarVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.GenericContainer;
@@ -55,7 +54,7 @@ public class PulsarContainerRuntime implements PulsarRuntime {
     private static final String PULSAR_ADMIN_URL =
             String.format("http://%s:%d", PULSAR_INTERNAL_HOSTNAME, BROKER_HTTP_PORT);
 
-    private static final String CURRENT_VERSION = PulsarVersion.getVersion();
+    private static final String CURRENT_VERSION = "4.0.14";
 
     private final PulsarContainer container;
     private final AtomicBoolean started;

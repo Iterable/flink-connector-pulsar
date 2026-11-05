@@ -21,22 +21,19 @@ package org.apache.flink.connector.pulsar.sink.writer.topic;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.connector.base.DeliveryGuarantee;
 import org.apache.flink.connector.pulsar.common.crypto.PulsarCrypto;
-import org.apache.flink.connector.pulsar.sink.committer.PulsarCommittable;
 import org.apache.flink.connector.pulsar.sink.config.SinkConfiguration;
 import org.apache.flink.connector.pulsar.testutils.PulsarTestSuiteBase;
 
 import org.apache.pulsar.client.api.Message;
 import org.apache.pulsar.client.api.Schema;
 import org.apache.pulsar.client.api.SchemaSerializationException;
-import org.apache.pulsar.client.api.TypedMessageBuilder;
 import org.apache.pulsar.client.api.transaction.TransactionCoordinatorClient;
 import org.apache.pulsar.client.api.transaction.TxnID;
-import org.junit.jupiter.api.Disabled;
+import org.apache.pulsar.client.impl.TypedMessageBuilderImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 
-import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.apache.commons.lang3.RandomStringUtils.randomAlphabetic;
@@ -66,12 +63,9 @@ class ProducerRegisterTest extends PulsarTestSuiteBase {
         register.createMessageBuilder(topic, Schema.STRING).value(message).send();
 
         if (deliveryGuarantee == EXACTLY_ONCE) {
-            List<PulsarCommittable> committables = register.prepareCommit();
-            for (PulsarCommittable committable : committables) {
-                TxnID txnID = committable.getTxnID();
-                TransactionCoordinatorClient coordinatorClient = operator().coordinatorClient();
-                coordinatorClient.commit(txnID);
-            }
+            TxnID txnID = register.prepareCommit();
+            TransactionCoordinatorClient coordinatorClient = operator().coordinatorClient();
+            coordinatorClient.commit(txnID);
         }
 
         Message<String> receiveMessage = operator().receiveMessage(topic, Schema.STRING);
@@ -96,12 +90,35 @@ class ProducerRegisterTest extends PulsarTestSuiteBase {
         String message = randomAlphabetic(10);
         register.createMessageBuilder(topic, Schema.STRING).value(message).sendAsync();
 
-        List<PulsarCommittable> committables = register.prepareCommit();
-        assertThat(committables).isEmpty();
+        assertThat(register.prepareCommit()).isNull();
     }
 
-    @Disabled(
-            "This type of validation is no longer possible when sending a bytes message, the exact reason remains unknown")
+    @Test
+    void exactlyOnceUsesOneTransactionAcrossTopicsPerCheckpoint() throws Exception {
+        String firstTopic = randomAlphabetic(10);
+        String secondTopic = randomAlphabetic(10);
+        operator().createTopic(firstTopic, 8);
+        operator().createTopic(secondTopic, 8);
+
+        SinkConfiguration configuration =
+                new SinkConfiguration(operator().sinkConfig(DeliveryGuarantee.EXACTLY_ONCE));
+        ProducerRegister register =
+                new ProducerRegister(
+                        configuration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
+
+        register.createMessageBuilder(firstTopic, Schema.STRING).value("first").send();
+        register.createMessageBuilder(secondTopic, Schema.STRING).value("second").send();
+
+        TxnID txnID = register.prepareCommit();
+        assertThat(txnID).isNotNull();
+        operator().coordinatorClient().commit(txnID);
+
+        assertThat(operator().receiveMessage(firstTopic, Schema.STRING).getValue())
+                .isEqualTo("first");
+        assertThat(operator().receiveMessage(secondTopic, Schema.STRING).getValue())
+                .isEqualTo("second");
+    }
+
     @Test
     void sendMessageBytesWithWrongSchemaAndEnableCheck() throws Exception {
         String topic = randomAlphabetic(10);
@@ -116,9 +133,11 @@ class ProducerRegisterTest extends PulsarTestSuiteBase {
                         sinkConfiguration, PulsarCrypto.disabled(), createSinkWriterMetricGroup());
 
         long message = ThreadLocalRandom.current().nextLong();
-        TypedMessageBuilder<byte[]> builder = register.createMessageBuilder(topic, Schema.BYTES);
-
-        assertThatThrownBy(() -> builder.value(Schema.INT64.encode(message)))
+        TypedMessageBuilderImpl<Object> builder =
+                (TypedMessageBuilderImpl<Object>)
+                        register.createMessageBuilder(topic, Schema.BYTES);
+        builder.value(Schema.INT64.encode(message));
+        assertThatThrownBy(() -> builder.getMessage())
                 .isInstanceOf(SchemaSerializationException.class);
     }
 }
