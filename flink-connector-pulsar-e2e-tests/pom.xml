@@ -51,12 +51,8 @@ under the License.
 			<artifactId>flink-connector-test-utils</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-test-utils</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>org.testcontainers</groupId>
-			<artifactId>testcontainers-pulsar</artifactId>
+			<artifactId>pulsar</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.flink</groupId>

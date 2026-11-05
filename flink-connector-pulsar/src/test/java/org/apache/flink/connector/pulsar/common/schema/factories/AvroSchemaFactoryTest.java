@@ -91,7 +91,7 @@ class AvroSchemaFactoryTest {
 
         // Serialize by type information.
         TypeSerializer<StructWithAnnotations> serializer =
-                information.createSerializer(new ExecutionConfig().getSerializerConfig());
+                information.createSerializer(new ExecutionConfig());
         // TypeInformation serialization.
         assertThatCode(() -> InstantiationUtil.clone(information)).doesNotThrowAnyException();
         assertThatCode(() -> InstantiationUtil.clone(serializer)).doesNotThrowAnyException();

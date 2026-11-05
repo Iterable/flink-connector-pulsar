@@ -32,7 +32,6 @@ import java.io.IOException;
 public class PulsarCommittableSerializer implements SimpleVersionedSerializer<PulsarCommittable> {
 
     private static final int CURRENT_VERSION = 1;
-    public static final String TOPIC_PLACEHOLDER = "Topic_Placeholder";
 
     @Override
     public int getVersion() {
@@ -46,10 +45,7 @@ public class PulsarCommittableSerializer implements SimpleVersionedSerializer<Pu
             TxnID txnID = obj.getTxnID();
             out.writeLong(txnID.getMostSigBits());
             out.writeLong(txnID.getLeastSigBits());
-            // To ensure compatibility after degradation, the old version can still restore the
-            // PulsarCommittable
-            // object already stored in the new version and write a meaningless topic name.
-            out.writeUTF(TOPIC_PLACEHOLDER);
+            out.writeUTF(obj.getTopic());
             out.flush();
             return baos.toByteArray();
         }
@@ -62,7 +58,8 @@ public class PulsarCommittableSerializer implements SimpleVersionedSerializer<Pu
             long mostSigBits = in.readLong();
             long leastSigBits = in.readLong();
             TxnID txnID = new TxnID(mostSigBits, leastSigBits);
-            return new PulsarCommittable(txnID);
+            String topic = in.readUTF();
+            return new PulsarCommittable(txnID, topic);
         }
     }
 }

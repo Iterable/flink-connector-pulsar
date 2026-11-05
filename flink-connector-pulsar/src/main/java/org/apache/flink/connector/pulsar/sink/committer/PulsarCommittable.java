@@ -18,42 +18,33 @@
 
 package org.apache.flink.connector.pulsar.sink.committer;
 
-import org.apache.flink.annotation.PublicEvolving;
+import org.apache.flink.annotation.Internal;
 
 import org.apache.pulsar.client.api.transaction.TxnID;
 
 import java.util.Objects;
 
 /** The writer state for Pulsar connector. We would used in Pulsar committer. */
-@PublicEvolving
+@Internal
 public class PulsarCommittable {
 
     /** The transaction id. */
     private final TxnID txnID;
 
-    /**
-     * To ensure compatibility after degradation, the new version can still restore the
-     * PulsarCommittable object already stored in the old version and keep this constructor.
-     *
-     * @deprecated the param @param topic is meaningless now.
-     */
-    @Deprecated
-    public PulsarCommittable(TxnID txnID, String topic) {
-        this(txnID);
-    }
+    /** The topic name with partition information. */
+    private final String topic;
 
-    public PulsarCommittable(TxnID txnID) {
+    public PulsarCommittable(TxnID txnID, String topic) {
         this.txnID = txnID;
+        this.topic = topic;
     }
 
     public TxnID getTxnID() {
         return txnID;
     }
 
-    /** @deprecated the param @param topic is meaningless now. */
-    @Deprecated
     public String getTopic() {
-        return PulsarCommittableSerializer.TOPIC_PLACEHOLDER;
+        return topic;
     }
 
     @Override
@@ -65,16 +56,16 @@ public class PulsarCommittable {
             return false;
         }
         PulsarCommittable that = (PulsarCommittable) o;
-        return Objects.equals(txnID, that.txnID);
+        return Objects.equals(txnID, that.txnID) && Objects.equals(topic, that.topic);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(txnID);
+        return Objects.hash(txnID, topic);
     }
 
     @Override
     public String toString() {
-        return "PulsarCommittable{" + "txnID=" + txnID + '}';
+        return "PulsarCommittable{" + "txnID=" + txnID + ", topic='" + topic + '\'' + '}';
     }
 }
